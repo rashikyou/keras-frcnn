@@ -23,21 +23,25 @@ class FixedBatchNormalization(Layer):
         self.input_spec = [InputSpec(shape=input_shape)]
         shape = (input_shape[self.axis],)
 
-        self.gamma = self.add_weight(shape,
+        self.gamma_name = '{}_gamma'.format(self.name)
+        self.gamma = self.add_weight(shape=shape,
                                      initializer=self.gamma_init,
                                      regularizer=self.gamma_regularizer,
-                                     name='{}_gamma'.format(self.name),
+                                     name=self.gamma_name,
                                      trainable=False)
-        self.beta = self.add_weight(shape,
+        self.beta_name = '{}_beta'.format(self.name)
+        self.beta = self.add_weight(shape=shape,
                                     initializer=self.beta_init,
                                     regularizer=self.beta_regularizer,
-                                    name='{}_beta'.format(self.name),
+                                    name=self.beta_name,
                                     trainable=False)
-        self.running_mean = self.add_weight(shape, initializer='zero',
-                                            name='{}_running_mean'.format(self.name),
+        self.running_mean_name = '{}_running_mean'.format(self.name)
+        self.running_mean = self.add_weight(shape=shape, initializer='zero',
+                                            name=self.running_mean_name,
                                             trainable=False)
-        self.running_std = self.add_weight(shape, initializer='one',
-                                           name='{}_running_std'.format(self.name),
+        self.running_std_name = '{}_running_std'.format(self.name)
+        self.running_std = self.add_weight(shape=shape, initializer='one',
+                                           name=self.running_std_name,
                                            trainable=False)
 
         if self.initial_weights is not None:
