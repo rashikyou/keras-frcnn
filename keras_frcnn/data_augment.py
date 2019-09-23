@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import copy
 
-
 def augment(img_data, config, augment=True):
 	assert 'filepath' in img_data
 	assert 'bboxes' in img_data
@@ -68,6 +67,10 @@ def augment(img_data, config, augment=True):
 				elif angle == 0:
 					pass
 
-	img_data_aug['width'] = img.shape[1]
-	img_data_aug['height'] = img.shape[0]
-	return img_data_aug, img
+	try:
+		img_data_aug['width'] = img.shape[1]
+		img_data_aug['height'] = img.shape[0]
+		return img_data_aug, img
+	except Exception as e:
+		print(e)
+		return img_data_aug, None

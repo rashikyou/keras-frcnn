@@ -6,6 +6,7 @@ import time
 import numpy as np
 from optparse import OptionParser
 import pickle
+import datetime
 
 from keras import backend as K
 from keras.optimizers import Adam, SGD, RMSprop
@@ -31,11 +32,11 @@ parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal
 parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
 				  action="store_true", default=False)
-parser.add_option("--num_epochs", type="int", dest="num_epochs", help="Number of epochs.", default=2000)
+parser.add_option("--num_epochs", type="int", dest="num_epochs", help="Number of epochs.", default=2)
 parser.add_option("--config_filename", dest="config_filename", help=
 				"Location to store all the metadata related to the training (to be used when testing).",
 				default="config.pickle")
-parser.add_option("--output_weight_path", dest="output_weight_path", help="Output path for weights.", default='./model_frcnn.hdf5')
+parser.add_option("--output_weight_path", dest="output_weight_path", help="Output path for weights.", default='./model_frcnn_resnet50.hdf5')
 parser.add_option("--input_weight_path", dest="input_weight_path", help="Input path for weights. If not specified, will try to load default weights provided by keras.")
 
 (options, args) = parser.parse_args()
@@ -148,27 +149,78 @@ model_rpn.compile(optimizer=optimizer, loss=[losses.rpn_loss_cls(num_anchors), l
 model_classifier.compile(optimizer=optimizer_classifier, loss=[losses.class_loss_cls, losses.class_loss_regr(len(classes_count)-1)], metrics={'dense_class_{}'.format(len(classes_count)): 'accuracy'})
 model_all.compile(optimizer='sgd', loss='mae')
 
-epoch_length = 1000
-num_epochs = int(options.num_epochs)
-iter_num = 0
-
-losses = np.zeros((epoch_length, 5))
-rpn_accuracy_rpn_monitor = []
-rpn_accuracy_for_epoch = []
-start_time = time.time()
-
-best_loss = np.Inf
-
 class_mapping_inv = {v: k for k, v in class_mapping.items()}
 print('Starting training')
 
 vis = True
 
-for epoch_num in range(num_epochs):
+def save_model(losses, rpn_accuracy_for_epoch, start_time, best_loss):
+	loss_rpn_cls = np.mean(losses[:, 0])
+	loss_rpn_regr = np.mean(losses[:, 1])
+	loss_class_cls = np.mean(losses[:, 2])
+	loss_class_regr = np.mean(losses[:, 3])
+	class_acc = np.mean(losses[:, 4])
 
+	mean_overlapping_bboxes = float(sum(rpn_accuracy_for_epoch)) / len(rpn_accuracy_for_epoch)
+	# rpn_accuracy_for_epoch = []
+
+	if C.verbose:
+		print('Mean number of bounding boxes from RPN overlapping ground truth boxes: {}'.format(mean_overlapping_bboxes))
+		print('Classifier accuracy for bounding boxes from RPN: {}'.format(class_acc))
+		print('Loss RPN classifier: {}'.format(loss_rpn_cls))
+		print('Loss RPN regression: {}'.format(loss_rpn_regr))
+		print('Loss Detector classifier: {}'.format(loss_class_cls))
+		print('Loss Detector regression: {}'.format(loss_class_regr))
+		print('Elapsed time: {}'.format(time.time() - start_time))
+
+	curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr
+
+	if curr_loss < best_loss:
+		if C.verbose:
+			print('Total loss decreased from {} to {}, saving weights'.format(best_loss,curr_loss))
+		best_loss = curr_loss
+
+		now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+		model_name = "%s_%.2d_%s" % (C.model_path, epoch_num, now)
+		print("model_name = "+model_name)
+		model_all.save_weights(model_name)
+
+	return best_loss
+
+def select_samples(pos_samples, neg_samples):
+	sel_samples = []
+
+	if C.num_rois > 1:
+		if len(pos_samples) < C.num_rois//2:
+			selected_pos_samples = pos_samples.tolist()
+		else:
+			selected_pos_samples = np.random.choice(pos_samples, C.num_rois//2, replace=False).tolist()
+		try:
+			selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples), replace=False).tolist()
+		except:
+			selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples), replace=True).tolist()
+
+		# sel_samples = selected_pos_samples + selected_neg_samples
+		return selected_pos_samples + selected_neg_samples
+	else:
+		# in the extreme case where num_rois = 1, we pick a random pos or neg sample
+		selected_pos_samples = pos_samples.tolist()
+		selected_neg_samples = neg_samples.tolist()
+		if np.random.randint(0, 2):
+			sel_samples = random.choice(neg_samples)
+		else:
+			sel_samples = random.choice(pos_samples)
+
+	return sel_samples
+
+def epoch_func(epoch_num, best_loss, epoch_length):
+	rpn_accuracy_rpn_monitor = []
+	rpn_accuracy_for_epoch = []
 	progbar = generic_utils.Progbar(epoch_length)
-	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
-
+	losses = np.zeros((epoch_length, 5))
+	iter_num = 0
+	start_time = time.time()
+	epoch_break = 0
 	while True:
 		try:
 
@@ -210,25 +262,7 @@ for epoch_num in range(num_epochs):
 			rpn_accuracy_rpn_monitor.append(len(pos_samples))
 			rpn_accuracy_for_epoch.append((len(pos_samples)))
 
-			if C.num_rois > 1:
-				if len(pos_samples) < C.num_rois//2:
-					selected_pos_samples = pos_samples.tolist()
-				else:
-					selected_pos_samples = np.random.choice(pos_samples, C.num_rois//2, replace=False).tolist()
-				try:
-					selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples), replace=False).tolist()
-				except:
-					selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples), replace=True).tolist()
-
-				sel_samples = selected_pos_samples + selected_neg_samples
-			else:
-				# in the extreme case where num_rois = 1, we pick a random pos or neg sample
-				selected_pos_samples = pos_samples.tolist()
-				selected_neg_samples = neg_samples.tolist()
-				if np.random.randint(0, 2):
-					sel_samples = random.choice(neg_samples)
-				else:
-					sel_samples = random.choice(pos_samples)
+			sel_samples = select_samples(pos_samples, neg_samples)
 
 			loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]], [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
 
@@ -243,40 +277,34 @@ for epoch_num in range(num_epochs):
 									  ('detector_cls', losses[iter_num, 2]), ('detector_regr', losses[iter_num, 3])])
 
 			iter_num += 1
-			
+
 			if iter_num == epoch_length:
-				loss_rpn_cls = np.mean(losses[:, 0])
-				loss_rpn_regr = np.mean(losses[:, 1])
-				loss_class_cls = np.mean(losses[:, 2])
-				loss_class_regr = np.mean(losses[:, 3])
-				class_acc = np.mean(losses[:, 4])
 
-				mean_overlapping_bboxes = float(sum(rpn_accuracy_for_epoch)) / len(rpn_accuracy_for_epoch)
-				rpn_accuracy_for_epoch = []
-
-				if C.verbose:
-					print('Mean number of bounding boxes from RPN overlapping ground truth boxes: {}'.format(mean_overlapping_bboxes))
-					print('Classifier accuracy for bounding boxes from RPN: {}'.format(class_acc))
-					print('Loss RPN classifier: {}'.format(loss_rpn_cls))
-					print('Loss RPN regression: {}'.format(loss_rpn_regr))
-					print('Loss Detector classifier: {}'.format(loss_class_cls))
-					print('Loss Detector regression: {}'.format(loss_class_regr))
-					print('Elapsed time: {}'.format(time.time() - start_time))
-
-				curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr
-				iter_num = 0
+				best_loss = save_model(losses, rpn_accuracy_for_epoch, start_time, best_loss)
 				start_time = time.time()
-
-				if curr_loss < best_loss:
-					if C.verbose:
-						print('Total loss decreased from {} to {}, saving weights'.format(best_loss,curr_loss))
-					best_loss = curr_loss
-					model_all.save_weights(C.model_path)
-
+				# print("Finally best_loss = "+str(best_loss))
 				break
 
 		except Exception as e:
 			print('Exception: {}'.format(e))
-			continue
+			if epoch_break > 9:
+				epoch_break = 0
+				print('break')
+				break
+			else:
+				epoch_break += 1
+				continue
+
+	return best_loss
+
+epoch_length = 5
+best_loss = np.Inf
+num_epochs = int(options.num_epochs)
+
+for epoch_num in range(num_epochs):
+
+	print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
+
+	best_loss = epoch_func(epoch_num, best_loss, epoch_length)
 
 print('Training complete, exiting.')

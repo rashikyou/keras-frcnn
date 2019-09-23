@@ -145,11 +145,9 @@ all_imgs = []
 
 classes = {}
 
-bbox_threshold = 0.8
-
 visualise = True
 
-def roi_func(R, F):
+def roi_func(R, F, bbox_threshold):
     bboxes = {}
     probs = {}
 
@@ -197,7 +195,7 @@ def roi_func(R, F):
 
     return bboxes, probs
 
-def img_labels(bboxes, img):
+def img_labels(bboxes, probs, img):
     all_dets = []
     for key in bboxes:
         bbox = np.array(bboxes[key])
@@ -220,7 +218,9 @@ def img_labels(bboxes, img):
             cv2.rectangle(img, (textOrg[0] - 5,textOrg[1]+baseLine - 5), (textOrg[0]+retval[0] + 5, textOrg[1]-retval[1] - 5), (255, 255, 255), -1)
             cv2.putText(img, textLabel, textOrg, cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 0), 1)
 
-    return all_dets, img;
+    return all_dets;
+
+bbox_threshold = 0.8
 
 if __name__ == '__main__' :
     for idx, img_name in enumerate(sorted(os.listdir(img_path))):
@@ -248,9 +248,9 @@ if __name__ == '__main__' :
 
         # apply the spatial pyramid pooling to the proposed regions
 
-        bboxes, probs = roi_func(R, F)
+        bboxes, probs = roi_func(R, F, bbox_threshold)
 
-        all_dets, img = img_labels(bboxes, img)
+        all_dets = img_labels(bboxes, probs, img)
 
         print('Elapsed time = {}'.format(time.time() - st))
         print(all_dets)
