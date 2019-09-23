@@ -39,12 +39,12 @@ def iou(a, b):
 
 def get_new_img_size(width, height, img_min_side=600):
 	if width <= height:
-		f = float(img_min_side) / width
-		resized_height = int(f * height)
+		f = float(img_min_side) / float(width)
+		resized_height = int(f * float(height))
 		resized_width = img_min_side
 	else:
-		f = float(img_min_side) / height
-		resized_width = int(f * width)
+		f = float(img_min_side) / float(height)
+		resized_width = int(f * float(width))
 		resized_height = img_min_side
 
 	return resized_width, resized_height
@@ -57,8 +57,7 @@ class SampleSelector:
 		self.class_cycle = itertools.cycle(self.classes)
 		self.curr_class = next(self.class_cycle)
 
-	def skip_sample_for_balanced_class(self, img_data):
-
+	def skip_sample_for_balanced_class(self, img_data): 
 		class_in_img = False
 
 		for bbox in img_data['bboxes']:
@@ -283,22 +282,18 @@ def get_anchor_gt(all_img_data, class_count, C, img_length_calc_function, backen
 
 		for img_data in all_img_data:
 			try:
-
+				# print(img_data)
 				if C.balanced_classes and sample_selector.skip_sample_for_balanced_class(img_data):
 					continue
 
 				# read in image, and optionally add augmentation
 
 				if mode == 'train':
-					img_data_aug, x_img = data_augment.augment(img_data, C, augment=True)
+					img_data_aug, x_img = data_augment.augment(img_data, C)
 				else:
-					img_data_aug, x_img = data_augment.augment(img_data, C, augment=False)
+					img_data_aug, x_img = data_augment.augment(img_data, C)
 
 				(width, height) = (img_data_aug['width'], img_data_aug['height'])
-				(rows, cols, _) = x_img.shape
-
-				assert cols == width
-				assert rows == height
 
 				# get image dimensions for resizing
 				(resized_width, resized_height) = get_new_img_size(width, height, C.im_size)
