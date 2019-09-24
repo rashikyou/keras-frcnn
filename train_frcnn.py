@@ -26,10 +26,10 @@ parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of s
 				default="simple")
 parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=32)
 parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='resnet50')
-parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=false).", action="store_true", default=False)
-parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
-parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
-				  action="store_true", default=False)
+# parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=false).", action="store_true", default=False)
+# parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
+# parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
+# 				  action="store_true", default=False)
 parser.add_option("--num_epochs", type="int", dest="num_epochs", help="Number of epochs.", default=2)
 parser.add_option("--config_filename", dest="config_filename", help=
 				"Location to store all the metadata related to the training (to be used when testing).",
@@ -52,9 +52,9 @@ else:
 # pass the settings from the command line, and persist them in the config object
 C = config.Config()
 
-C.use_horizontal_flips = bool(options.horizontal_flips)
-C.use_vertical_flips = bool(options.vertical_flips)
-C.rot_90 = bool(options.rot_90)
+# C.use_horizontal_flips = bool(options.horizontal_flips)
+# C.use_vertical_flips = bool(options.vertical_flips)
+# C.rot_90 = bool(options.rot_90)
 
 C.model_path = options.output_weight_path
 C.num_rois = int(options.num_rois)
@@ -112,8 +112,8 @@ data_gen_val = data_generators.get_anchor_gt(val_imgs, classes_count, C, nn.get_
 
 if K.image_data_format() == 'channels_last':
 	input_shape_img = (None, None, 3)
-else:
-	input_shape_img = (3, None, None)
+# else:
+#	input_shape_img = (3, None, None)
 
 img_input = Input(shape=input_shape_img)
 roi_input = Input(shape=(None, 4))

@@ -39,8 +39,8 @@ def nn_base(input_tensor=None, trainable=False):
     # Determine proper input shape
     if K.image_data_format() == 'channels_last':
         input_shape = (None, None, 3)
-    else:
-        input_shape = (3, None, None)
+    # else:
+    #    input_shape = (3, None, None)
 
     if input_tensor is None:
         img_input = Input(shape=input_shape)
@@ -52,8 +52,8 @@ def nn_base(input_tensor=None, trainable=False):
 
     if K.image_data_format() == 'channels_last':
         bn_axis = 3
-    else:
-        bn_axis = 1
+    # else:
+    #    bn_axis = 1
 
     # Block 1
     x = Conv2D(64, (3, 3), activation='relu', padding='same', name='block1_conv1')(img_input)
