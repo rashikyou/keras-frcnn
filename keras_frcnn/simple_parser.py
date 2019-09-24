@@ -36,8 +36,8 @@ def get_data(input_path):
 					all_imgs[filename] = {}
 
 					all_imgs[filename]['filepath'] = filename
-					all_imgs[filename]['width'] = width
-					all_imgs[filename]['height'] = height
+					all_imgs[filename]['width'] = int(width)
+					all_imgs[filename]['height'] = int(height)
 					all_imgs[filename]['bboxes'] = []
 					if np.random.randint(0,6) > 0:
 						all_imgs[filename]['imageset'] = 'trainval'
