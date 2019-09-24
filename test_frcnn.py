@@ -3,7 +3,7 @@ import os
 import cv2
 import numpy as np
 import sys
-import pickle
+# import pickle
 from optparse import OptionParser
 import time
 from keras_frcnn import config
@@ -21,9 +21,9 @@ parser = OptionParser()
 parser.add_option("-p", "--path", dest="test_path", help="Path to test data.")
 parser.add_option("-n", "--num_rois", type="int", dest="num_rois",
                 help="Number of ROIs per iteration. Higher means more memory use.", default=32)
-parser.add_option("--config_filename", dest="config_filename", help=
-                "Location to read the metadata related to the training (generated when training).",
-                default="config.pickle")
+# parser.add_option("--config_filename", dest="config_filename", help=
+#                "Location to read the metadata related to the training (generated when training).",
+#                 default="config.pickle")
 parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='resnet50')
 
 (options, args) = parser.parse_args()
@@ -31,11 +31,30 @@ parser.add_option("--network", dest="network", help="Base network to use. Suppor
 if not options.test_path:   # if filename is not given
     parser.error('Error: path to test data must be specified. Pass --path to command line')
 
-
-config_output_filename = options.config_filename
-
-with open(config_output_filename, 'rb') as f_in:
-    C = pickle.load(f_in)
+C = config.Config()
+C.class_mapping = {
+    'aeroplane'  : 0,
+    'bg'         : 1,
+    'bicycle'    : 2,
+    'bird'       : 3,
+    'boat'       : 4,
+    'bottle'     : 5,
+    'bus'        : 6,
+    'car'        : 7,
+    'cat'        : 8,
+    'chair'      : 9,
+    'cow'        : 10,
+    'diningtable': 11,
+    'dog'        : 12,
+    'horse'      : 13,
+    'motorbike'  : 14,
+    'person'     : 15,
+    'pottedplant': 16,
+    'sheep'      : 17,
+    'sofa'       : 18,
+    'train'      : 19,
+    'tvmonitor'  : 20
+}
 
 if C.network == 'resnet50':
     import keras_frcnn.resnet as nn
@@ -43,9 +62,9 @@ elif C.network == 'vgg':
     import keras_frcnn.vgg as nn
 
 # turn off any data augmentation at test time
-C.use_horizontal_flips = False
-C.use_vertical_flips = False
-C.rot_90 = False
+# C.use_horizontal_flips = False
+# C.use_vertical_flips = False
+# C.rot_90 = False
 
 img_path = options.test_path
 
@@ -53,7 +72,7 @@ def format_img_size(img, C):
     """ formats the image size based on config """
     img_min_side = float(C.im_size)
     (height,width,_) = img.shape
-        
+
     if width <= height:
         ratio = img_min_side/width
         new_height = int(ratio * height)
@@ -253,10 +272,7 @@ if __name__ == '__main__' :
 
         print('Elapsed time = {}'.format(time.time() - st))
         print(all_dets)
-        
+
         basename = "./data/output/output_" + os.path.basename(img_name)
         print("output = "+basename)
         cv2.imwrite(basename, img)
-
-        # cv2.imshow('img', img)
-        cv2.waitKey(0)
