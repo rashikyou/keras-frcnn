@@ -8,10 +8,10 @@ Adapted from code contributed by BigMoyan.
 from __future__ import print_function
 from __future__ import absolute_import
 
-from keras.layers import Input, Add, Dense, Activation, Flatten, Convolution2D, MaxPooling2D, ZeroPadding2D, \
+from tensorflow.keras.layers import Input, Add, Dense, Activation, Flatten, Convolution2D, MaxPooling2D, ZeroPadding2D, \
     AveragePooling2D, TimeDistributed
 
-from keras import backend as K
+from tensorflow.python.keras import backend as K
 
 from keras_frcnn.RoiPoolingConv import RoiPoolingConv
 from keras_frcnn.FixedBatchNormalization import FixedBatchNormalization
@@ -33,12 +33,12 @@ def get_img_output_length(width, height):
             input_length = (input_length - filter_size + stride) // stride
         return input_length
 
-    return get_output_length(width), get_output_length(height) 
+    return get_output_length(width), get_output_length(height)
 
 def identity_block(input_tensor, kernel_size, filters, stage, block, trainable=True):
 
     nb_filter1, nb_filter2, nb_filter3 = filters
-    
+
     if K.image_data_format() == 'channels_last':
         bn_axis = 3
     # else:

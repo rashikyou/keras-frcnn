@@ -7,9 +7,9 @@ import sys
 from optparse import OptionParser
 import time
 from keras_frcnn import config
-from keras import backend as K
-from keras.layers import Input
-from keras.models import Model
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Input
+from tensorflow.keras.models import Model
 from keras_frcnn import roi_helpers
 
 IMAGE_DIM_ORDERING = "tf"

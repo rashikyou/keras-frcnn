@@ -8,14 +8,14 @@ from optparse import OptionParser
 import pickle
 import datetime
 
-from keras import backend as K
-from keras.optimizers import Adam, SGD, RMSprop
-from keras.layers import Input
-from keras.models import Model
+from tensorflow.keras import backend as K
+from tensorflow.keras.optimizers import Adam, SGD, RMSprop
+from tensorflow.keras.layers import Input
+from tensorflow.keras import Model
 from keras_frcnn import config, data_generators
 from keras_frcnn import losses as losses
 import keras_frcnn.roi_helpers as roi_helpers
-from keras.utils import generic_utils
+from tensorflow.python.keras.utils import generic_utils
 
 sys.setrecursionlimit(40000)
 
@@ -198,8 +198,7 @@ def select_samples(pos_samples, neg_samples):
 		except:
 			selected_neg_samples = np.random.choice(neg_samples, C.num_rois - len(selected_pos_samples), replace=True).tolist()
 
-		# sel_samples = selected_pos_samples + selected_neg_samples
-		return selected_pos_samples + selected_neg_samples
+		sel_samples = selected_pos_samples + selected_neg_samples
 	else:
 		# in the extreme case where num_rois = 1, we pick a random pos or neg sample
 		selected_pos_samples = pos_samples.tolist()

@@ -1,5 +1,5 @@
-from keras import backend as K
-from keras.objectives import categorical_crossentropy
+from tensorflow.keras import backend as K
+from tensorflow.keras.backend import categorical_crossentropy
 
 # if K.image_dim_ordering() == 'tf':
 import tensorflow as tf
